@@ -1,0 +1,5 @@
+{
+  "name": "Email Contact extractor",
+  "description": "A professional tool to parse email headers and bodies to extract structured contact information, names, and email addresses ready for copying and pasting.",
+  "requestFramePermissions": []
+}
