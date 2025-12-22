@@ -3,26 +3,47 @@ import React, { useState } from 'react';
 
 interface CopyButtonProps {
   textToCopy: string;
+  htmlToCopy?: string;
   label: string;
 }
 
-const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, label }) => {
+const CopyButton: React.FC<CopyButtonProps> = ({ textToCopy, htmlToCopy, label }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      if (htmlToCopy && typeof ClipboardItem !== 'undefined') {
+        const textBlob = new Blob([textToCopy], { type: 'text/plain' });
+        const htmlBlob = new Blob([htmlToCopy], { type: 'text/html' });
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/plain': textBlob,
+            'text/html': htmlBlob,
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(textToCopy);
+      }
+      
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy text: ', err);
+      // Fallback to simple text copy if rich copy fails
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy failed:', fallbackErr);
+      }
     }
   };
 
   return (
     <button
       onClick={handleCopy}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex-shrink-0 ${
         copied 
           ? 'bg-green-100 text-green-700 border border-green-200' 
           : 'bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95'

@@ -9,6 +9,10 @@ export const parseEmailContent = async (text: string): Promise<ParseResult> => {
     model: 'gemini-3-flash-preview',
     contents: `Extract all contact information from the following email text. For each person found, provide their full name, email address, professional title, and phone number if available. If a field is missing, use an empty string. Only return valid contacts found in the text.
     
+    IMPORTANT FORMATTING RULES:
+    1. Name Parsing: Ensure all names are strictly Title Cased (e.g. "John Doe", "Maria Garcia"). Capitalize ONLY the first letter of each name part. Do NOT use ALL CAPS.
+    2. Greek Names: Pay special attention to Greek names. Ensure they are Title Cased and maintain their correct accents (e.g. "Γιώργος" not "ΓΙΩΡΓΟΣ" or "Γιωργος").
+
     Email Content:
     ${text}`,
     config: {

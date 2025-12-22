@@ -4,11 +4,14 @@ import { parseEmailContent } from './services/geminiService';
 import { Contact } from './types';
 import CopyButton from './components/CopyButton';
 
+type ViewFormat = 'simple' | 'bullet' | 'number';
+
 const App: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [viewFormat, setViewFormat] = useState<ViewFormat>('simple');
 
   const handleParse = async () => {
     if (!inputText.trim()) return;
@@ -40,13 +43,44 @@ const App: React.FC = () => {
     .map(c => `${c.name} <${c.email}>`)
     .join('; ') + (contacts.length > 0 ? '; ' : '');
 
-  // Format 2: Name, Email, Title, Phone (one per line)
-  const contactListFormat = contacts
-    .map(c => {
-      const parts = [c.name, c.email, c.title, c.phone].filter(p => p.trim() !== '');
-      return parts.join(', ');
-    })
-    .join('\n');
+  // Generate content for Member Details based on format
+  const getMemberDetailsContent = () => {
+    // Basic part generation
+    const entries = contacts.map(c => {
+      // Logic: Name in Bold, Then title in Parenthesis, then email and last the phone
+      const name = c.name.trim();
+      const title = c.title.trim() ? `(${c.title.trim()})` : '';
+      const email = c.email.trim();
+      const phone = c.phone.trim();
+      
+      // We filter empty strings to avoid double spaces
+      const parts = [title, email, phone].filter(p => p !== '');
+      const details = parts.join(' ');
+      
+      return { name, details };
+    });
+
+    let html = '';
+    let text = '';
+
+    if (viewFormat === 'simple') {
+      // Simple List: Just lines separated by empty line
+      html = entries.map(e => `<div><b>${e.name}</b> ${e.details}</div>`).join('<br/><br/>'); // Extra break for empty line
+      text = entries.map(e => `${e.name} ${e.details}`).join('\n\n');
+    } else if (viewFormat === 'bullet') {
+      // Bulleted List
+      html = `<ul>${entries.map(e => `<li style="margin-bottom: 1em;"><b>${e.name}</b> ${e.details}</li>`).join('')}</ul>`;
+      text = entries.map(e => `• ${e.name} ${e.details}`).join('\n\n');
+    } else if (viewFormat === 'number') {
+      // Numbered List
+      html = `<ol>${entries.map(e => `<li style="margin-bottom: 1em;"><b>${e.name}</b> ${e.details}</li>`).join('')}</ol>`;
+      text = entries.map((e, i) => `${i + 1}. ${e.name} ${e.details}`).join('\n\n');
+    }
+
+    return { html, text };
+  };
+
+  const { html: memberHtml, text: memberText } = getMemberDetailsContent();
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 py-12 px-4 sm:px-6">
@@ -129,23 +163,72 @@ const App: React.FC = () => {
                 </div>
               </section>
 
-              {/* Output 2: Detailed List */}
+              {/* Output 2: Detailed List with Toggles */}
               <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
+                <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider self-start sm:self-center">
                     Member Details
                   </h2>
-                  <CopyButton textToCopy={contactListFormat} label="Copy Details" />
+                  
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    {/* View Toggles */}
+                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                      <button
+                        onClick={() => setViewFormat('simple')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          viewFormat === 'simple' 
+                            ? 'bg-white text-indigo-600 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                        title="Simple List"
+                      >
+                        Simple
+                      </button>
+                      <button
+                        onClick={() => setViewFormat('bullet')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          viewFormat === 'bullet' 
+                            ? 'bg-white text-indigo-600 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                        title="Bulleted List"
+                      >
+                        Bullet
+                      </button>
+                      <button
+                        onClick={() => setViewFormat('number')}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                          viewFormat === 'number' 
+                            ? 'bg-white text-indigo-600 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                        title="Numbered List"
+                      >
+                        Number
+                      </button>
+                    </div>
+
+                    <CopyButton textToCopy={memberText} htmlToCopy={memberHtml} label="Copy Details" />
+                  </div>
                 </div>
                 <div className="p-6">
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm whitespace-pre-wrap leading-relaxed min-h-[60px]">
-                    {contactListFormat}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm leading-relaxed min-h-[60px]">
+                    {/* Render HTML content safely */}
+                    <div 
+                      className={`
+                        ${viewFormat === 'bullet' ? 'list-disc pl-5' : ''}
+                        ${viewFormat === 'number' ? 'list-decimal pl-5' : ''}
+                      `}
+                      dangerouslySetInnerHTML={{ __html: memberHtml }} 
+                    />
                   </div>
-                  <p className="mt-2 text-xs text-slate-400">One person per line: Name, Email, Title, Phone.</p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Format: <b>Name</b> (Title) Email Phone. Copied text preserves bold formatting.
+                  </p>
                 </div>
               </section>
 
-              {/* Raw Table View (Optional extra polish) */}
+              {/* Raw Table View */}
               <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100">
                   <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">
