@@ -50,9 +50,11 @@ const App: React.FC = () => {
       if (result.contacts.length === 0) {
         setError("No contacts could be extracted from the provided text.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError("An error occurred while parsing the text. Please check your API key and input.");
+      // Show specific error message if available
+      const errorMessage = err.message || "An unknown error occurred.";
+      setError(`Error: ${errorMessage}. Please check your API key and internet connection.`);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +181,7 @@ const App: React.FC = () => {
               )}
             </button>
             {error && (
-              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">
+              <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2 break-all">
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
